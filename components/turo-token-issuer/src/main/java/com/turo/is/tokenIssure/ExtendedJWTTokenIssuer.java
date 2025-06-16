@@ -116,8 +116,6 @@ public class ExtendedJWTTokenIssuer extends JWTTokenIssuer {
         }
 
         OAuth2AccessTokenReqDTO oAuth2AccessTokenReqDTO = request.getOauth2AccessTokenReqDTO();
-        String grantType = oAuth2AccessTokenReqDTO.getGrantType();
-
         RequestParameter[] requestParametersArray = oAuth2AccessTokenReqDTO.getRequestParameters();
 
         //adding additional properties in oauth2/token request to JWT.
@@ -129,14 +127,12 @@ public class ExtendedJWTTokenIssuer extends JWTTokenIssuer {
             }
         }
 
-        //fetch user roles and attach as claim authorities if grant type is client credentials
-        if (grantType.equals(GRANT_TYPE_CLIENT_CREDENTIALS)) {
-            int tenantId = getTenantId(request, null);
-            String appClientId = oAuth2AccessTokenReqDTO.getClientId();
+        //fetch user roles and attach as claim authorities
+        int tenantId = getTenantId(request, null);
+        String appClientId = oAuth2AccessTokenReqDTO.getClientId();
 
-            String[] roles = getUserRoles(tenantId, appClientId);
-            jwtClaimsSetBuilder.claim(AUTHORITIES_ATTRIBUTE, roles);
-        }
+        String[] roles = getUserRoles(tenantId, appClientId);
+        jwtClaimsSetBuilder.claim(AUTHORITIES_ATTRIBUTE, roles);
 
         jwtClaimsSet = jwtClaimsSetBuilder.build();
 
@@ -486,6 +482,7 @@ public class ExtendedJWTTokenIssuer extends JWTTokenIssuer {
         roles = Arrays.stream(roles)
                 .map(s -> s.startsWith(INTERNAL_ATTRIBUTE) ? s.substring(INTERNAL_ATTRIBUTE.length()) : s)
                 .toArray(String[]::new);
+        roles = (String[]) ArrayUtils.removeElement(roles, "everyone");
 
         return roles;
     }
