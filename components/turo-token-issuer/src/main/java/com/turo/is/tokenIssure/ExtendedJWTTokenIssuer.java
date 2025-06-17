@@ -64,6 +64,9 @@ public class ExtendedJWTTokenIssuer extends JWTTokenIssuer {
     private static final String CLAIM_AUT = "aut";
     private static final String CLAIM_AZP = "azp";
     private static final String ROLE_EVERYONE = "everyone";
+    private static final String USER_NAME_ATTRIBUTE = "user_name";
+    private static final String EMAIL_ATTRIBUTE = "email";
+    private static final String ROLES_ATTRIBUTE = "roles";
 
     private Algorithm signatureAlgorithm = null;
     private static final Log log = LogFactory.getLog(ExtendedJWTTokenIssuer.class);
@@ -105,7 +108,7 @@ public class ExtendedJWTTokenIssuer extends JWTTokenIssuer {
 
     private void modifyAuthoritiesAndScopes(JWTClaimsSet.Builder builder, JWTClaimsSet claimsSet, String[] roles) {
         handleScopeClaim(builder, claimsSet.getClaim(CLAIM_SCOPE));
-        handleAuthoritiesClaim(builder, claimsSet.getClaim(AUTHORITIES_ATTRIBUTE), roles);
+        handleAuthoritiesClaim(builder, claimsSet.getClaim(ROLES_ATTRIBUTE), roles);
     }
 
     private void handleScopeClaim(JWTClaimsSet.Builder builder, Object scopeObj) {
@@ -121,22 +124,20 @@ public class ExtendedJWTTokenIssuer extends JWTTokenIssuer {
         }
     }
 
-    private void handleAuthoritiesClaim(JWTClaimsSet.Builder builder, Object authoritiesObj, String[] roles) {
-        if (authoritiesObj instanceof JSONArray) {
-            JSONArray authoritiesArray = (JSONArray) authoritiesObj;
-            for (int i = 0; i < authoritiesArray.size(); i++) {
-                authoritiesArray.set(i, authoritiesArray.get(i).toString().replace(INTERNAL_ATTRIBUTE, ""));
-            }
-            authoritiesArray.remove(ROLE_EVERYONE);
-            builder.claim(AUTHORITIES_ATTRIBUTE, authoritiesArray);
-        } else if (authoritiesObj instanceof String) {
-            String authority = (String) authoritiesObj;
-            if (authority.contains(ROLE_EVERYONE)) {
+    private void handleAuthoritiesClaim(JWTClaimsSet.Builder builder, Object rolesObj, String[] roles) {
+
+        builder.claim(ROLES_ATTRIBUTE, null);
+        if (rolesObj instanceof JSONArray) {
+            JSONArray rolesArray = (JSONArray) rolesObj;
+            rolesArray.remove(ROLE_EVERYONE);
+            builder.claim(AUTHORITIES_ATTRIBUTE, rolesArray);
+        } else if (rolesObj instanceof String) {
+            String singleRole = (String) rolesObj;
+            if (singleRole.contains(ROLE_EVERYONE)) {
                 builder.claim(AUTHORITIES_ATTRIBUTE, null);
-            } else {
-                builder.claim(AUTHORITIES_ATTRIBUTE, authority.replace(INTERNAL_ATTRIBUTE, ""));
             }
         } else if (roles != null && roles.length > 0) {
+            // This only executes if it's client_credentials
             List<String> filtered = Arrays.stream(roles)
                     .map(role -> role.replace(INTERNAL_ATTRIBUTE, ""))
                     .collect(Collectors.toList());
@@ -186,11 +187,21 @@ public class ExtendedJWTTokenIssuer extends JWTTokenIssuer {
                                              OAuthAuthzReqMessageContext authorizationContext) throws IdentityOAuth2Exception {
         OAuth2AccessTokenReqDTO dto = tokenContext.getOauth2AccessTokenReqDTO();
         JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder(jwtClaimsSet);
+        renameEmail(builder, jwtClaimsSet);
         removeValues(builder);
         String[] roles = getRolesForClientCredentials(tokenContext, dto);
         addCustomAttributes(dto, builder);
         modifyAuthoritiesAndScopes(builder, jwtClaimsSet, roles);
         return builder.build();
+    }
+
+    private void renameEmail(JWTClaimsSet.Builder builder, JWTClaimsSet jwtClaimsSet) {
+        builder.claim(EMAIL_ATTRIBUTE, null);
+        Object emailObj = jwtClaimsSet.getClaim(EMAIL_ATTRIBUTE);
+        if (emailObj != null && emailObj instanceof String) {
+            builder.claim(USER_NAME_ATTRIBUTE, (String) emailObj);
+        }
+
     }
 
     private String resolveSigningTenantDomain(OAuthTokenReqMessageContext tokenContext,
