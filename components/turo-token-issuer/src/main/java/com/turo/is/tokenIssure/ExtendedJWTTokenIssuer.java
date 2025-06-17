@@ -142,7 +142,12 @@ public class ExtendedJWTTokenIssuer extends JWTTokenIssuer {
                     .map(role -> role.replace(INTERNAL_ATTRIBUTE, ""))
                     .collect(Collectors.toList());
             filtered.remove(ROLE_EVERYONE);
-            builder.claim(AUTHORITIES_ATTRIBUTE, filtered.toArray(new String[0]));
+            if (filtered.size() == 0) {
+                builder.claim(AUTHORITIES_ATTRIBUTE, null);
+            } else {
+                builder.claim(AUTHORITIES_ATTRIBUTE, filtered.toArray(new String[0]));
+            }
+
         }
     }
 
