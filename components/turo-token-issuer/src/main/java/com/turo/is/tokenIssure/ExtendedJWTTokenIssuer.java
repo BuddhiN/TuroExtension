@@ -67,6 +67,9 @@ public class ExtendedJWTTokenIssuer extends JWTTokenIssuer {
     private static final String USER_NAME_ATTRIBUTE = "user_name";
     private static final String EMAIL_ATTRIBUTE = "email";
     private static final String ROLES_ATTRIBUTE = "roles";
+    private static final String BINDING_REF_ATTRIBUTE = "binding_ref";
+    private static final String BINDING_TYPE_ATTRIBUTE = "binding_type";
+
 
     private Algorithm signatureAlgorithm = null;
     private static final Log log = LogFactory.getLog(ExtendedJWTTokenIssuer.class);
@@ -103,7 +106,9 @@ public class ExtendedJWTTokenIssuer extends JWTTokenIssuer {
                 .claim(CLAIM_AUT, null)
                 .claim(CLAIM_AZP, null)
                 .claim(AUTHORIZED_ORGANIZATION_ID_ATTRIBUTE, null)
-                .claim(AUTHORIZED_ORGANIZATION_NAME_ATTRIBUTE, null);
+                .claim(AUTHORIZED_ORGANIZATION_NAME_ATTRIBUTE, null)
+                .claim(BINDING_REF_ATTRIBUTE, null)
+                .claim(BINDING_TYPE_ATTRIBUTE, null);
     }
 
     private void modifyAuthoritiesAndScopes(JWTClaimsSet.Builder builder, JWTClaimsSet claimsSet, String[] roles) {
