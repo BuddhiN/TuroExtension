@@ -83,6 +83,11 @@ public class ExtendedJWTTokenIssuer extends JWTTokenIssuer {
 
     private String[] getRolesForClientCredentials(OAuthTokenReqMessageContext request,
                                                   OAuth2AccessTokenReqDTO dto) throws IdentityOAuth2Exception {
+
+        String rolesFromEnv = getRolesForClientsFromEnv(dto.getClientId());
+        if (StringUtils.isNotEmpty(rolesFromEnv)) {
+            return rolesFromEnv.split(",");
+        }
         if (GRANT_TYPE_CLIENT_CREDENTIALS.equals(dto.getGrantType())) {
             int tenantId = getTenantId(request, null);
             String[] roles = getUserRoles(tenantId, dto.getClientId());
@@ -321,5 +326,12 @@ public class ExtendedJWTTokenIssuer extends JWTTokenIssuer {
         int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
 
         return tenantId;
+    }
+
+    private String getRolesForClientsFromEnv(String clientId) {
+        String envRoleKey = "roles_" + clientId;
+        String roles = System.getenv(envRoleKey);
+        log.info("Retrieving Env variable : " + envRoleKey + " = " + roles);
+        return roles;
     }
 }
